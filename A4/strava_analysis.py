@@ -75,9 +75,26 @@ def plot_speed_distribution(df):
     plt.show()
 
 
-def map_activities_with_endpoints(df, zoom_start=12):
+def extract_lat_lon(latlng_str):
     """
-    Plot activity start and end points on an interactive folium map using GeoDataFrame geometry.
+    Safely extract latitude and longitude from a string in the form '[lat, lon]'.
+
+    Args:
+        latlng_str (str): A string representing a list with two floats (e.g., "[48.2, 16.3]").
+
+    Returns:
+        tuple: A tuple (lat, lon) as floats if valid, or (None, None) if parsing fails.
+    """
+    try:
+        lat, lon = latlng_str.strip('[]').split(',')
+        return float(lat), float(lon)
+    except Exception:
+        return None, None
+
+
+def map_df(df, zoom_start=2):
+    """
+    Plot activity start and end points on an interactive folium map.
 
     Args:
         df (pd.DataFrame): DataFrame with 'start_latlng' and 'end_latlng' as stringified lists.
@@ -86,15 +103,6 @@ def map_activities_with_endpoints(df, zoom_start=12):
     Returns:
         folium.Map: A folium map with start (blue) and end (red) points.
     """
-    # Extract coordinates from list-like strings
-    df['start_lat'] = df['start_latlng'].apply(lambda x: eval(x)[0])
-    df['start_lon'] = df['start_latlng'].apply(lambda x: eval(x)[1])
-    df['end_lat'] = df['end_latlng'].apply(lambda x: eval(x)[0] if pd.notnull(x) else None)
-    df['end_lon'] = df['end_latlng'].apply(lambda x: eval(x)[1] if pd.notnull(x) else None)
-
-    # Drop rows with any missing coordinates
-    df = df.dropna(subset=['start_lat', 'start_lon', 'end_lat', 'end_lon'])
-
     # Create Point geometries
     start_geometry = [Point(xy) for xy in zip(df['start_lon'], df['start_lat'])]
     end_geometry = [Point(xy) for xy in zip(df['end_lon'], df['end_lat'])]
@@ -102,8 +110,11 @@ def map_activities_with_endpoints(df, zoom_start=12):
     # Create GeoDataFrame with start points
     gdf = gpd.GeoDataFrame(df.copy(), geometry=start_geometry, crs="EPSG:4326")
 
+    #Delete nan
+    gdf = gdf.dropna(subset=['start_lat', 'start_lon','end_lat', 'end_lon'])
+
     # Create the folium map centered on mean start coordinates
-    map_center = [df['start_lat'].mean(), df['start_lon'].mean()]
+    map_center = [0, 0]
     fmap = folium.Map(location=map_center, zoom_start=zoom_start)
 
     # Add start points (blue)
@@ -116,16 +127,4 @@ def map_activities_with_endpoints(df, zoom_start=12):
             fill=True,
             fill_opacity=0.7
         ).add_to(fmap)
-
-    # Add end points (red)
-    for i, row in gdf.iterrows():
-        folium.CircleMarker(
-            location=[row['end_lat'], row['end_lon']],
-            radius=4,
-            popup=f"{row['name']} ({row['type']}) - End",
-            color='red',
-            fill=True,
-            fill_opacity=0.6
-        ).add_to(fmap)
-
     return fmap
