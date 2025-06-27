@@ -12,6 +12,7 @@ The script includes functions to:
 - Extract and parse latitude and longitude from string-encoded fields.
 - Plot distributions of average and maximum speed using Seaborn.
 - Visualize activity start and end points on an interactive map with Folium.
+- Visualize activity start points colored by speed.
 
 ## Requirements
 
