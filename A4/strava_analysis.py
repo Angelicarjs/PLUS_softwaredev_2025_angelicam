@@ -26,6 +26,8 @@ import folium
 import seaborn as sns
 import matplotlib.pyplot as plt
 from shapely.geometry import Point
+import branca.colormap as cm
+
 
 
 def load_strava_data(filepath):
@@ -127,4 +129,60 @@ def map_df(df, zoom_start=2):
             fill=True,
             fill_opacity=0.7
         ).add_to(fmap)
+
+        folium.CircleMarker(
+            location=[row['end_lat'], row['end_lon']],
+            radius=4,
+            color='red',
+            fill=True,
+            fill_opacity=0.6,
+            popup='End'
+        ).add_to(fmap)
+
+    return fmap
+
+def map_activities_colored_by_speed(df, zoom_start=2):
+    """
+    Create a folium map with activity start points color-coded by average speed.
+
+    Args:
+        df (pd.DataFrame): DataFrame with 'start_latlng' and 'average_speed'.
+        zoom_start (int): Initial zoom level of the folium map.
+
+    Returns:
+        folium.Map: A folium map with color-coded markers by average speed.
+    """
+    
+    # Create geometry and GeoDataFrame
+    geometry = [Point(xy) for xy in zip(df['start_lon'], df['start_lat'])]
+    gdf = gpd.GeoDataFrame(df, geometry=geometry, crs="EPSG:4326")
+
+    #Delete nan
+    gdf = gdf.dropna(subset=['start_lat', 'start_lon','end_lat', 'end_lon'])
+
+    # Create base map centered on 0,0
+    map_center = [0, 0]
+    fmap = folium.Map(location=map_center, zoom_start=zoom_start)
+
+    # Define color scale based on average speed
+    speed_colormap = cm.linear.YlGnBu_09.scale(
+        gdf['average_speed'].min(),
+        gdf['average_speed'].max()
+    )
+
+    # Add colored markers
+    for _, row in gdf.iterrows():
+        folium.CircleMarker(
+            location=[row['start_lat'], row['start_lon']],
+            radius=5,
+            color=speed_colormap(row['average_speed']),
+            fill=True,
+            fill_opacity=0.7,
+            popup=f"{row['name']} ({row['average_speed']:.2f} m/s)"
+        ).add_to(fmap)
+
+    # Add legend to map
+    speed_colormap.caption = 'Average Speed (m/s)'
+    speed_colormap.add_to(fmap)
+
     return fmap

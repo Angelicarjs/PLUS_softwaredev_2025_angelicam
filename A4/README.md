@@ -1,8 +1,8 @@
 # Strava Activity Analysis
 
-This repository contains a set of Python functions developed as part of **Assignment A3**.
+This repository contains a set of Python functions developed based on the Assignment A3.This time the code is fuctions in the .py file and it is use in the notebook.
 
-The main goal is to explore and visualize Strava activity data in a spatial and statistical context using Python geospatial tools.
+The main goal is to explore and visualize Strava activity data in a spatial and statistical context using Python geospatial tools. 
 
 ## Features
 
